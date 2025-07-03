@@ -67,6 +67,7 @@ function git_branch_list() {
    ${ECHODO} git branch --all --list | grep ${1:-""}
 }
 
+alias git_autocommit='git commit --all --message "$(git diff | grep -e '+++' -e '---')" && git push'
 alias git_status='${ECHODO} git status --show-stash --branch --verbose'
 
 git config --global user.name >/dev/null || echo "Git username not set!"

@@ -56,7 +56,14 @@ function d_bash() {
 }
 
 function d_ip() {
-   ${ECHODO} docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${1:-"Container ID is needed"}
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_note "Display the IP address of the specified Docker container(s)"
+      help_headline "${FUNCNAME}" "[container_id...]"
+      help_param "[container_id]" "Docker container id" "(all containers)"
+      help_note "Example: ${FUNCNAME} my-first-container my-second-container ..."
+      return 0;
+   }
+   ${ECHODO} docker inspect -f "'{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'" ${1:-$(docker ps -aq)}
 }
 
 function d_mysql8() {
