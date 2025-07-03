@@ -26,7 +26,7 @@ export colorReset='\e[0m'
 #      help_param "name" "This is a required parameter"
 #      help_param "[age]" "This is an optional parameter with no default"
 #      help_param "[gender]" "This is an optional parameter with a default value" "${default_gender}"
-#      help_note "*Note: " "This function has a side effect. " "!It might destroy the world."
+#      help_note "*Note: " "This function has a side effect. " '!It might destroy the world.'
 #      return 0;
 #   }
 

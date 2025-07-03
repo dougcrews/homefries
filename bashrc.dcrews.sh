@@ -160,6 +160,19 @@ function ff() {
    ${ECHODO} find . -name "$1" -print 2> /dev/null
 }
 
+# Recursive grep
+function grepr() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_note "Recursive grep from the current directory"
+      help_headline "${FUNCNAME}" "'[findspec]' "'[filespec]'""
+      help_param "[findspec]" "Pattern to search for" ".*"
+      help_param "[filespec]" "Files to search for" "*"
+      help_note "\!Enclose the file and pattern specs in 'single quotes' for best results."
+      return 0;
+   }
+   ${ECHODO} "find . -name ${2:-'*'} -exec grep --with-filename \"${1:-'.*'}\" {} \; 2>/dev/null"
+}
+
 # an unelevated version of "watch"
 function repeat() {
    while [ true ]; do
@@ -181,7 +194,7 @@ function vpn_active() {
    local -
    set +x
    [[ "${*}" =~ -v ]] && verbose=1
-   netsh.exe interface ip show route | grep ${vpn_ip} >/dev/null 2>&1 && is_disconnected=0
+   netsh.exe interface ip show route | \grep ${vpn_ip} >/dev/null 2>&1 && is_disconnected=0
    if [[ "${verbose}" != "0" ]]; then
       if [[ "${is_disconnected}" == "0" ]]; then
          echo "yes"
@@ -198,7 +211,7 @@ function vpn_required() {
    local verbose=0;
    local -
    set +x
-   (netsh.exe interface ip show route | grep ${vpn_ip} >/dev/null 2>&1) || (echo "VPN connection needed." && exit 1)
+   (netsh.exe interface ip show route | \grep ${vpn_ip} >/dev/null 2>&1) || (echo "VPN connection needed." && exit 1)
    vecho "VPN connected."
 }
 
@@ -275,9 +288,33 @@ alias crontab_all='for f in `sudo ls -b /var/spool/cron` ; do echo $f ; sudo cat
 alias d2u='find . -exec dos2unix {} \; && find . -name "*.bat" -exec unix2dos {} \;'
 alias disk='df --human-readable --local --print-type --exclude-type=tmpfs'
 which dnf 2>/dev/null && alias dnf='sudo \dnf -y'
-alias os_flavor="\grep --no-filename ID_LIKE /etc/*release* | sed -e 's/ID_LIKE=//;s/\"//g'"
-alias os_name="cat /etc/*-release 2>/dev/null | grep PRETTY_NAME | cut -c 13-"
+which dpkg >/dev/null 2>&1 && alias deb_install='${ECHODO} sudo dpkg -i' && alias deb_install
+alias envs='(set -o posix; set)' # List only environment variables, no functions or aliases
+alias functions='typeset -F' # List only environment functions, no env variables or aliases
+alias grep='\grep --color=AUTO'
+alias grepcode='\grep --color=AUTO --line-number --with-filename' # print filenames and line numbers with grep output
+alias la='ls --almost-all'
+alias lal='ls --almost-all -l'
+alias ll='ls -l'
+alias ls='ls --classify --color=tty --human-readable'
+which less >/dev/null 2>&1 && export PAGER=less
+alias links='ls -la $(find . -maxdepth 1 -type l -print)'
+alias m=more
+alias make_list='make -p 2>/dev/null | \grep -A 100000 "# Files" | \grep -v "^$" | \grep -v "^\(\s\|#\|\.\)" | \grep -v "Makefile:" | cut -d ":" -f 1 | sort -u'
+alias mv='\mv --interactive'
 alias my_ip='curl -s https://checkip.amazonaws.com'
+alias os_flavor="\grep --no-filename ID_LIKE /etc/*release* | sed -e 's/ID_LIKE=//;s/\"//g'"
+alias os_name="cat /etc/*-release 2>/dev/null | \grep PRETTY_NAME | cut -c 13-"
+alias ps!='ps -axfo pid,uname,%cpu,%mem,cmd'
+alias popd='\popd >/dev/null'
+alias pushd='\pushd >/dev/null'
+which free >/dev/null 2>&1 && alias ram='free -m | \grep Mem | awk "{printf \"%d MB / \%d MB (\%3.1f%\%)\n\", \$3, \$2, \$3*100/\$2}" 2>/dev/null'
+alias rm='\rm --interactive'
+which rpm >/dev/null 2>&1 && alias rpm_install='${ECHODO} sudo rpm -ivh' && alias rpm_update='${ECHODO} sudo rpm -Uvh'
+alias script_echo='[[ -n "${SSH_TTY:-$(tty)}" ]] && echo' # only echo if in interactive session
+alias shit='echodo $(history -p \!\!) | less'
+alias watch_that='echodo watch --beep --differences --interval 1 $(history -p \!\!)'
+which yum 2>/dev/null && alias yum='sudo \yum -y'
 
 # export aliases to scripts
 shopt -s expand_aliases
@@ -340,6 +377,7 @@ function md5() {
 
 function psgrep() {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 1 ]] && {
+      help_comment "List processes (ps) without self-referencing this command itself"
       help_headline "${FUNCNAME}" "search_text"
       help_param "search_text" "Text to search for within 'ps -ef' output"
       help_note "This function omits the pid line for itself."
@@ -348,28 +386,6 @@ function psgrep() {
    ps -ef | grep ${1} | grep -v " grep "
 }
 
-which dpkg >/dev/null 2>&1 && alias deb_install='${ECHODO} sudo dpkg -i' && alias deb_install
-alias envs='(set -o posix; set)' # List only environment variables, no functions or aliases
-alias functions='typeset -F' # List only environment functions, no env variables or aliases
-alias la='ls --almost-all'
-alias lal='ls --almost-all -l'
-alias ll='ls -l'
-alias ls='ls --classify --color=tty --human-readable'
-which less >/dev/null 2>&1 && export PAGER=less
-alias links='ls -la $(find . -maxdepth 1 -type l -print)'
-alias m=more
-alias make_list='make -p 2>/dev/null | grep -A 100000 "# Files" | grep -v "^$" | grep -v "^\(\s\|#\|\.\)" | grep -v "Makefile:" | cut -d ":" -f 1 | sort -u'
-alias mv='\mv --interactive'
-alias ps!='ps -axfo pid,uname,%cpu,%mem,cmd'
-alias popd='\popd >/dev/null'
-alias pushd='\pushd >/dev/null'
-which free >/dev/null 2>&1 && alias ram='free -m | grep Mem | awk "{printf \"%d MB / \%d MB (\%3.1f%\%)\n\", \$3, \$2, \$3*100/\$2}" 2>/dev/null'
-alias rm='\rm --interactive'
-which rpm >/dev/null 2>&1 && alias rpm_install='${ECHODO} sudo rpm -ivh' && alias rpm_update='${ECHODO} sudo rpm -Uvh'
-alias script_echo='[[ -n "${SSH_TTY:-$(tty)}" ]] && echo' # only echo if in interactive session
-alias shit='echodo $(history -p \!\!) | less'
-alias watch_that='echodo watch --beep --differences --interval 1 $(history -p \!\!)'
-which yum 2>/dev/null && alias yum='sudo \yum -y'
 
 # Automagically alias all ~/bin/*.sh scripts
 if [[ -d ~/.bin ]]; then for f in $( \ls ~/bin/*.sh ); do alias $(basename $f .sh)=". ~/bin/$(basename $f)"; done; fi;
@@ -413,11 +429,11 @@ function salutation() {
 export -f salutation
 
 # System information
-HOSTOS="$(cat /etc/*-release 2>/dev/null | grep PRETTY_NAME | cut -c 13-)"
+HOSTOS="$(cat /etc/*-release 2>/dev/null | \grep PRETTY_NAME | cut -c 13-)"
 FLAVOR="$(\grep --no-filename ID_LIKE /etc/*release* | sed -e 's/ID_LIKE=//;s/\"//g')"
 script_echo -e This is a ${colorCyan}${HOSTOS:=unidentified} $(uname -m)${colorLightCyan} \(${FLAVOR}\)${colorReset} on ${colorCyan}${XDG_CURRENT_DESKTOP:-"unknown XDG desktop"}${colorReset} joint, $(salutation).
 # Various ways to determine which distro you're running
-#cat /etc/*-release | grep PRETTY_NAME | cut -d '=' -f 2
+#cat /etc/*-release | \grep PRETTY_NAME | cut -d '=' -f 2
 #lsb_release 2>/dev/null
 #cat /proc/version 2>/dev/null
 #hostnamectl 2>/dev/null
@@ -433,11 +449,11 @@ which screenfetch-dev >/dev/null 2>&1 && screenfetch-dev
 alias sysinfo='echo -e "${colorCyan}${HOSTOS:=unidentified} $(uname -m)${colorReset}" && screenfetch-dev 2>/dev/null'
 
 # Display used/free disk space warning
-df --human-readable --local --print-type --exclude-type=tmpfs | grep -v Mount | grep '[9][0-9]%\|100%' | awk '{print $7" disk space free: "$5" ("$6" used)";}' | grep --color=auto '.*[9][0-9]%.*\|.*100%.*'
-df --human-readable --local --print-type --exclude-type=tmpfs | grep "/$" | awk '{print "Root disk space free: "$5" ("$6" used)";}'
+df --human-readable --local --print-type --exclude-type=tmpfs | \grep -v Mount | \grep '[9][0-9]%\|100%' | awk '{print $7" disk space free: "$5" ("$6" used)";}' | \grep --color=auto '.*[9][0-9]%.*\|.*100%.*'
+df --human-readable --local --print-type --exclude-type=tmpfs | \grep "/$" | awk '{print "Root disk space free: "$5" ("$6" used)";}'
 # Display free RAM warning
-which free >/dev/null 2>&1 && (free -l | grep Mem | awk '{printf "RAM %2.1f%% used\n", $3*100/$2}' | grep --color=auto 'RAM [9][0-9]\.[0-9]% used\|RAM 100% used')
-which free >/dev/null 2>&1 && (free -m | grep Mem | awk '{printf "RAM %d MB / %d MB (%3.1f%%)\n", $3, $2, $3*100/$2}';)
+which free >/dev/null 2>&1 && (free -l | \grep Mem | awk '{printf "RAM %2.1f%% used\n", $3*100/$2}' | \grep --color=auto 'RAM [9][0-9]\.[0-9]% used\|RAM 100% used')
+which free >/dev/null 2>&1 && (free -m | \grep Mem | awk '{printf "RAM %d MB / %d MB (%3.1f%%)\n", $3, $2, $3*100/$2}';)
 
 script_echo -n -e "
                         ${colorLightGreen}GREETINGS, MASTER.${colorReset}
