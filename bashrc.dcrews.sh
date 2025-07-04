@@ -402,6 +402,7 @@ if [[ -d ~/.bin ]]; then for f in $( \ls ~/bin/*.sh ); do alias $(basename $f .s
 [[ -x ~/.bashrc.postgresql ]] && . ~/.bashrc.postgresql
 [[ -x ~/.bashrc.python ]] && . ~/.bashrc.python
 [[ -x ~/.bashrc.ssh ]] && . ~/.bashrc.ssh
+[[ -x ~/.bashrc.svn ]] && . ~/.bashrc.svn
 [[ -x ~/.bashrc.terraform ]] && . ~/.bashrc.terraform
 [[ -x ~/.bashrc.vault ]] && . ~/.bashrc.vault
 [[ -x ~/.bashrc.localhost ]] && . ~/.bashrc.localhost
