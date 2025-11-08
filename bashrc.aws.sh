@@ -773,4 +773,4 @@ function aws_cdk_build_deploy() {
 #
 
 aws --version
-cdk --version
+echodo cdk --version

@@ -14,7 +14,7 @@ alias npm_test='${ECHODO} npm run test'
 #alias | grep nodejs_
 #functions | grep nodejs_
 
-npm --version
-nvm --version
-node --version
-npx --version
+echodo npm --version
+echodo nvm --version
+echodo node --version
+echodo npx --version

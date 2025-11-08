@@ -1,11 +1,12 @@
 script_echo "TypeScript setup..."
 
 # Install TypeScript
-tsc --version >/dev/null 2>&1 || npm install typescript --save-dev
+npx tsc --version >/dev/null 2>&1 || npm install typescript --save-dev
 
 alias npm_build='${ECHODO} npm run build'
 alias npm_test='${ECHODO} npm run test'
+alias tsc='${ECHODO} npx tsc'
 
-npm --version
-nvm --version
+echodo npm --version
+echodo nvm --version
 tsc --version
