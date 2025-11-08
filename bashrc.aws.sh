@@ -35,7 +35,7 @@ function aws_sso_required() {
       help_param "[--verbose]" "Output current AWS account id"
       return 0;
    }
-   (aws_sso_account ${1:-service} --quiet || aws_sso_login)
+   (aws_sso_account ${1:-ecr-user} --quiet || aws_sso_login)
    [[ "${*}" =~ --verbose ]] && aws_sso_account
    if [[ -n "${AWS_ACCOUNT}" ]]; then
       return 0;
@@ -272,6 +272,48 @@ function aws_ecr_docker_login() {
    aws_ecr_get_password | docker login --username AWS --password-stdin ${1:-060724984176.dkr.ecr.us-east-1.amazonaws.com}
 }
 export -f aws_ecr_docker_login
+
+function aws_ecr_push() {
+# @TODO Add help
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_headline "${FUNCNAME}" "[dockerfile]" "[build_name]" "[...]"
+      help_param "[dockerfile]" "Dockerfile filename" "./Dockerfile"
+      help_param "[build_name]" "Docker image name/tag" "current directory name"
+      help_note "\t\t\tdefault AWS profile: " "*ecr-user"
+      return 0;
+   }
+
+   # Retrieve an authentication token and authenticate your Docker client to your registry. Use the AWS CLI:
+   #  Note: If you receive an error using the AWS CLI, make sure that you have the latest version of the AWS CLI and Docker installed.
+   #aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 246085041696.dkr.ecr.us-west-2.amazonaws.com
+   try aws_sso_required ecr-user;
+
+   # Build your Docker image using the following command. For information on building a Docker file from scratch see the instructions here . You can skip this step if your image is already built:
+#   try docker build -t ${1} .
+   local dockerfile=${1:-Dockerfile};
+   local build_name=$(basename ${PWD})
+   try ${ECHODO} docker buildx build --file=${dockerfile} --label ${build_name} .
+
+   # After the build completes, tag your image so you can push the image to this repository:
+   try docker tag ${build_name}:latest 246085041696.dkr.ecr.us-west-2.amazonaws.com/emd-fargate-dcrews:latest
+
+   # Run the following command to push this image to your newly created AWS repository:
+   try docker push 246085041696.dkr.ecr.us-west-2.amazonaws.com/emd-fargate-dcrews:latest
+}
+export aws_ecr_push
+
+function aws_ecs_list_clusters() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_headline "${FUNCNAME}" "profile" "[--raw]"
+      help_param "profile" "AWS profile to assume"
+      help_param "[--raw]" "Raw output from AWS CLI"
+      return 0;
+   }
+   aws_sso_required;
+   local JQ_QUERY='.clusterArns[]'
+   [[ "${*}" =~ --raw ]] && JQ_QUERY='.'
+   aws --profile ${1:-default} ecs describe-clusters | jq "${JQ_QUERY}" | sed -e 's/"//g'
+}
 
 function aws_eks_list_clusters() {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 1 ]] && {
@@ -570,6 +612,19 @@ function aws_route53_list_hosted_zones() {
    aws --profile ${1} route53 list-hosted-zones | jq "${JQ_QUERY}" | sed -e 's/"//g'
 }
 
+function aws_s3_list() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_headline "${FUNCNAME}" "profile" "[bucket_name]" "[--raw]"
+      help_param "[profile]" "AWS profile to assume" "default"
+      help_param "[s3 param...]" "Additional s3 params ([s3_url], --bucket [bucketname], --recursive, --human-readable, --summarize, --bucket-name-prefix [prefix], ...)"
+      return 0;
+   }
+   aws_sso_required;
+   aws --profile ${1:-default} s3 ls ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9}
+}
+export -f aws_s3_list
+alias aws_s3_ls='${ECHODO} aws_s3_list'
+
 function aws_secrets_get_secret() {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 2 ]] && {
       help_headline "${FUNCNAME}" "profile" "secret_id" "[--raw]"
@@ -685,4 +740,37 @@ function aws_all_list() {
    ${ECHODO} awsls --profiles ${1} --attributes tags,cidr_block aws_*
 }
 
+# Install AWS CDK
+cdk --version >/dev/null 2>&1 || npm install -g aws-cdk
+alias aws_cdk_update='${ECHODO} npm update -g aws-cdk'
+
+export CDK='${ECHODO} cdk --trace --no-color'
+alias aws_cdk_bootstrap="${CDK} bootstrap ${CDK_DEFAULT_ACCOUNT}/${CDK_DEFAULT_REGION}"
+alias aws_cdk_stacks="${CDK} list --long"
+alias aws_cdk_list="${CDK} list --short"
+alias aws_cdk_synth="${CDK} synth"
+alias aws_cdk_diff="${CDK} diff --no-change-set"
+export CDK_DEPLOY="${CDK} deploy --method=direct --progress --require-approval=never --ignore-no-stacks"
+alias aws_cdk_deploy="${CDK_DEPLOY} --no-rollback"
+alias aws_cdk_redeploy="${CDK_DEPLOY} --hotswap --no-rollback"
+alias aws_cdk_watch_stable="${CDK_DEPLOY} --watch --hotswap-fallback"
+alias aws_cdk_watch="${CDK_DEPLOY} --watch --no-rollback --logs --concurrency 2"
+alias aws_cdk_destroy="${CDK} destroy --force"
+function aws_cdk_build_deploy() {
+   try aws_cdk_list
+   try aws_cdk_bootstrap
+   try aws_cdk_synth
+   try aws_cdk_deploy
+}
+
+# npm i -D @swc/core @swc/helpers regenerator-runtime
+# touch tsconfig.json
+#  {
+#    "ts-node" : {
+#      "swc": true
+#    }
+#  },
+#
+
 aws --version
+cdk --version

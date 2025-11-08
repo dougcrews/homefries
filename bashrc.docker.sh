@@ -27,11 +27,17 @@ function d_run() {
       return 0;
    }
    local docker_image="busybox:latest"
+   if [[ -s ./Dockerfile ]]; then
+      # default current directory name
+      docker_image=$(basename ${PWD});
+      # @TODO docker build if needed
+   fi
    local docker_params=${@}
    if [[ "${#}" > 0 ]]; then
       docker_image=${1}
       docker_params=${docker_params[@]/${1}} # remove this param
    fi
+   # @TODO scan Dockerfile for ENV and convert to "-e KEY=Value" params
    local image_name=$(echo ${docker_image} | sed -e 's/:/-/g')
    ${ECHODO} docker pull ${docker_image}
    ${ECHODO} docker run -it --rm=true --name ${image_name} ${docker_image} ${docker_params}
@@ -56,14 +62,7 @@ function d_bash() {
 }
 
 function d_ip() {
-   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
-      help_note "Display the IP address of the specified Docker container(s)"
-      help_headline "${FUNCNAME}" "[container_id...]"
-      help_param "[container_id]" "Docker container id" "(all containers)"
-      help_note "Example: ${FUNCNAME} my-first-container my-second-container ..."
-      return 0;
-   }
-   ${ECHODO} docker inspect -f "'{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'" ${1:-$(docker ps -aq)}
+   ${ECHODO} docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${1:-"Container ID is needed"}
 }
 
 function d_mysql8() {
@@ -71,12 +70,38 @@ function d_mysql8() {
    ${ECHODO} docker run --detach --publish 127.0.0.1:3306:3306 --volume /var/log/docker/mysql8:/var/log/mysql --volume /var/lib/docker/mysql8:/var/lib/mysql --env MYSQL_ROOT_PASSWORD=password --env MYSQL_GENERAL_LOG=1 --name mysql8 cytopia/mysql-8.0 && dps --filter "name=mysql8"
 }
 
-function d_postgres {
+function d_postgres() {
    ${ECHODO} docker pull postgres
    ${ECHODO} docker run --detach --publish 127.0.0.1:5432:5432 --volume /var/log/docker/postgres:/var/log/postgres --volume /var/lib/docker/postgres:/var/lib/postgres --env POSTGRES_PASSWORD=password --name postgres postgres && dps --filter "name=postgres"
 }
 
-function d_build {
+function d_images() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_note "Wrapper for " "*docker image list"
+      help_headline "${FUNCNAME}" "[--short|--long|--full] [...]"
+      help_param "[--short]" "Use table format with useful fields"
+      help_param "[--long]" "Use list format with newlines and all fields"
+      help_param "[--full]" "Use table format with all fields"
+      help_param "[...]" "\tAdditional parameters passed to 'docker image list'"
+      return 0;
+   }
+   local docker_params=${@}
+   local docker_format
+   if [[ "${*}" =~ --short ]]; then
+      docker_format="--format 'table {{.ID}}\t{{.Repository}}\t{{.CreatedSince}}\t{{.Size}}\t{{.Containers}}\t{{.Tag}}'"
+      docker_params=${docker_params[@]/--short} # remove this param
+   elif [[ "${*}" =~ --long ]]; then
+      docker_format="--format 'ID: {{.ID}} (in containers: {{.Containers}})\nRepo: {{.Repository}}\nCreated: {{.CreatedAt}} ({{.CreatedSince}})\nSize: {{.Size}} ({{.VirtualSize}} virtual, {{.SharedSize}} shared, {{.UniqueSize}} unique)\nTags: {{.Tag}}\n'"
+      docker_params=${docker_params[@]/--long} # remove this param
+   elif [[ "${*}" =~ --full ]]; then
+      docker_format="--format 'table {{.ID}}\t{{.Digest}}\t{{.Repository}}\t{{.CreatedAt}}\t{{.CreatedSince}}\t{{.Containers}}\t{{.Tag}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.VirtualSize}}'"
+      docker_params=${docker_params[@]/--full} # remove this param
+   fi
+   ${ECHODO} docker image list ${docker_format} ${docker_params}
+}
+export -f d_images
+
+function d_build() {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
       help_note "Wrapper for " "*docker buildx build"
       help_headline "${FUNCNAME}" "[Dockerfile]" "[...]"
@@ -91,7 +116,8 @@ function d_build {
       docker_params=${docker_params[@]/${1}} # remove this param
    fi
    local build_name=$(basename ${PWD})
-   ${ECHODO} docker buildx build --file=${dockerfile} --label ${build_name} ${docker_params} .
+   ${ECHODO} try docker buildx build --file=${dockerfile} --tag ${build_name} --label ${build_name} ${docker_params} .
+   ${ECHODO} d_images | grep ${build_name}
 }
 
 function d_ps {
@@ -120,29 +146,32 @@ function d_ps {
    ${ECHODO} docker ps ${docker_format} ${docker_params}
 }
 
-function d_images {
+function d_inspect {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
-      help_note "Wrapper for " "*docker image list"
-      help_headline "${FUNCNAME}" "[--short|--long|--full] [...]"
+      help_note "Wrapper for " "*docker inspect"
+      help_headline "${FUNCNAME}" "[--short|--long|--full] [name|id] [...]"
       help_param "[--short]" "Use table format with useful fields"
       help_param "[--long]" "Use list format with newlines and all fields"
       help_param "[--full]" "Use table format with all fields"
-      help_param "[...]" "\tAdditional parameters passed to 'docker image list'"
+      help_param "[name|id]" "Docker name or id to inspect"
+      help_param "[...]" "\tAdditional parameters passed to 'docker inspect'"
       return 0;
    }
    local docker_params=${@}
-   local docker_format
-   if [[ "${*}" =~ --short ]]; then
-      docker_format="--format 'table {{.ID}}\t{{.Repository}}\t{{.CreatedSince}}\t{{.Size}}\t{{.Containers}}\t{{.Tag}}'"
-      docker_params=${docker_params[@]/--short} # remove this param
-   elif [[ "${*}" =~ --long ]]; then
-      docker_format="--format 'ID: {{.ID}} (in containers: {{.Containers}})\nRepo: {{.Repository}}\nCreated: {{.CreatedAt}} ({{.CreatedSince}})\nSize: {{.Size}} ({{.VirtualSize}} virtual, {{.SharedSize}} shared, {{.UniqueSize}} unique)\nTags: {{.Tag}}\n'"
-      docker_params=${docker_params[@]/--long} # remove this param
-   elif [[ "${*}" =~ --full ]]; then
-      docker_format="--format 'table {{.ID}}\t{{.Digest}}\t{{.Repository}}\t{{.CreatedAt}}\t{{.CreatedSince}}\t{{.Containers}}\t{{.Tag}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.VirtualSize}}'"
-      docker_params=${docker_params[@]/--full} # remove this param
-   fi
-   ${ECHODO} docker image list ${docker_format} ${docker_params}
+# copied from d_images; needs fixing for docker inspect output
+# default name/id = "local-image"
+#   local docker_format
+#   if [[ "${*}" =~ --short ]]; then
+#      docker_format="--format 'table {{.ID}}\t{{.Repository}}\t{{.CreatedSince}}\t{{.Size}}\t{{.Containers}}\t{{.Tag}}'"
+#      docker_params=${docker_params[@]/--short} # remove this param
+#   elif [[ "${*}" =~ --long ]]; then
+#      docker_format="--format 'ID: {{.ID}} (in containers: {{.Containers}})\nRepo: {{.Repository}}\nCreated: {{.CreatedAt}} ({{.CreatedSince}})\nSize: {{.Size}} ({{.VirtualSize}} virtual, {{.SharedSize}} shared, {{.UniqueSize}} unique)\nTags: {{.Tag}}\n'"
+#      docker_params=${docker_params[@]/--long} # remove this param
+#   elif [[ "${*}" =~ --full ]]; then
+#      docker_format="--format 'table {{.ID}}\t{{.Digest}}\t{{.Repository}}\t{{.CreatedAt}}\t{{.CreatedSince}}\t{{.Containers}}\t{{.Tag}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.VirtualSize}}'"
+#      docker_params=${docker_params[@]/--full} # remove this param
+#   fi
+   ${ECHODO} docker inspect ${@}
 }
 
 function d_containers {

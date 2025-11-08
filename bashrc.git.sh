@@ -18,6 +18,7 @@ eval $(ssh-agent -s) >/dev/null 2>&1
 
 alias git_identities='ssh-add -l'
 alias git_can_connect='ssh -T git@github.com'
+alias git_repo_url='git config --get remote.origin.url'
 
 if [[ $(ssh -T git@github.com >/dev/null 2>&1) -ne 1 ]]; then
    echo Adding default keys...
@@ -46,15 +47,21 @@ function git_revert() {
 export -f git_revert
 
 function git_pull() {
+   ${ECHODO} git fetch --progress -v -- "origin"
    #  --set-upstream docs say no param required/possible, but in practice it complains "you need to specify exactly one branch with the --set-upstream option"
    ${ECHODO} git pull --verbose --autostash --prune --progress # --recurse-submodules=yes --set-upstream
 }
 export -f git_pull
 
-alias git_set_upstream='${ECHODO} git branch --set-upstream-to=origin/$(git symbolic-ref --short HEAD)'
+function git_set_upstream() {
+   local git_upstream=$(git symbolic-ref --short HEAD)
+   ${ECHODO} git branch --set-upstream-to=origin/${git_upstream}
+   ${ECHODO} git pull --set-upstream origin ${git_upstream}
+}
 
 function git_checkout() {
    ${ECHODO} git stash save
+   ${ECHODO} git fetch --progress -v -- "origin"
    ${ECHODO} git checkout -f -B ${1:-main} --track --recurse-submodules
    ${ECHODO} git branch --show-current
    ${ECHODO} git pull
@@ -67,13 +74,21 @@ function git_branch_list() {
    ${ECHODO} git branch --all --list | grep ${1:-""}
 }
 
-alias git_autocommit='git commit --all --message "$(git diff | grep -e '+++' -e '---')" && git push'
-alias git_status='${ECHODO} git status --show-stash --branch --verbose'
+function git_status()
+{
+   ${ECHODO} git config --get remote.origin.url
+   ${ECHODO} git status --show-stash --branch --verbose
+}
+
+function git_fetch()
+{
+   ${ECHODO} git fetch --progress -v -- "origin"
+}
 
 git config --global user.name >/dev/null || echo "Git username not set!"
 git config --global user.email >/dev/null || echo "Git email not set!"
 
-function git_generate_key() {
+function git_generate_key_gpg() {
    echo "Generating GPG key..."
    gpg --full-generate-key
 

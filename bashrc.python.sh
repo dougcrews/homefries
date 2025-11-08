@@ -101,3 +101,6 @@ python --version
 which pip >/dev/null 2>&1 || alias pip=pip3
 pip --version
 virtualenv --version
+
+# Why the python install doesn't do this is beyond me.
+which python >/dev/null 2>&1 && which python3 >/dev/null 2>&1 || alias python=python3
