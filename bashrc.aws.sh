@@ -462,6 +462,22 @@ function aws_iam_list_user_policies() {
    aws --profile ${1} iam list-attached-user-policies --user-name ${2} | jq "${JQ_QUERY}" | sed -e 's/"//g'
 }
 
+function aws_iam_get_user() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_headline "${FUNCNAME}" "[user_name]" "[--raw]"
+      help_param "[user_name]" "User name to describe" "(currently logged in user)"
+      help_param "[--raw]" "Raw output from AWS CLI"
+      return 0;
+   }
+   local JQ_QUERY='.User.Arn'
+   [[ "${*}" =~ --raw ]] && JQ_QUERY='.'
+   username_param="";
+   if [[ "${1}" != "" ]]; then
+      username_param="--user-name";
+   fi
+   ${ECHODO} aws iam get-user ${username_param} ${1} | jq "${JQ_QUERY}" | sed -e 's/"//g'
+}
+
 function aws_kms_describe_key() {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 2 ]] && {
       help_headline "${FUNCNAME}" "profile" "key-id" "[--raw]"
@@ -744,23 +760,23 @@ function aws_all_list() {
 cdk --version >/dev/null 2>&1 || npm install -g aws-cdk
 alias aws_cdk_update='${ECHODO} npm update -g aws-cdk'
 
-export CDK='${ECHODO} cdk --trace --no-color'
-alias aws_cdk_bootstrap="${CDK} bootstrap ${CDK_DEFAULT_ACCOUNT}/${CDK_DEFAULT_REGION}"
-alias aws_cdk_stacks="${CDK} list --long"
-alias aws_cdk_list="${CDK} list --short"
-alias aws_cdk_synth="${CDK} synth"
-alias aws_cdk_diff="${CDK} diff --no-change-set"
+export CDK='${ECHODO} cdk --yes --trace --notices false 2>./cdk.err'
+alias cdk_bootstrap="${CDK} bootstrap ${CDK_DEFAULT_ACCOUNT}/${CDK_DEFAULT_REGION}"
+alias cdk_stacks="${CDK} list --long --show-dependencies"
+alias cdk_list="${CDK} list --short"
+alias cdk_synth="${CDK} synth"
+alias cdk_diff="${CDK} diff --no-change-set"
 export CDK_DEPLOY="${CDK} deploy --method=direct --progress --require-approval=never --ignore-no-stacks"
-alias aws_cdk_deploy="${CDK_DEPLOY} --no-rollback"
-alias aws_cdk_redeploy="${CDK_DEPLOY} --hotswap --no-rollback"
-alias aws_cdk_watch_stable="${CDK_DEPLOY} --watch --hotswap-fallback"
-alias aws_cdk_watch="${CDK_DEPLOY} --watch --no-rollback --logs --concurrency 2"
-alias aws_cdk_destroy="${CDK} destroy --force"
-function aws_cdk_build_deploy() {
-   try aws_cdk_list
-   try aws_cdk_bootstrap
-   try aws_cdk_synth
-   try aws_cdk_deploy
+alias cdk_deploy="${CDK_DEPLOY} --no-rollback"
+alias cdk_redeploy="${CDK_DEPLOY} --hotswap --no-rollback"
+alias cdk_watch_stable="${CDK_DEPLOY} --watch --hotswap-fallback"
+alias cdk_watch="${CDK_DEPLOY} --watch --no-rollback --logs --concurrency 2"
+alias cdk_destroy="${CDK} destroy --force"
+function cdk_build_deploy() {
+   try cdk_list
+   try cdk_bootstrap
+   try cdk_synth
+   try cdk_deploy
 }
 
 # npm i -D @swc/core @swc/helpers regenerator-runtime

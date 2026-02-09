@@ -88,6 +88,19 @@ function git_fetch()
 git config --global user.name >/dev/null || echo "Git username not set!"
 git config --global user.email >/dev/null || echo "Git email not set!"
 
+function git_generate_key_ssh() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 1 ]] && {
+      help_headline "${FUNCNAME}" "name"
+      help_param "name" "Key name, usually email for Git purposes"
+      return 0;
+   }
+
+   echo "Generating SSH key..."
+   touch ~/.ssh/${1}.ssh
+   ssh-keygen -t ed25519 -C "${1}" -f ~/.ssh/${1}.ssh
+   ssh-add ~/.ssh/${1}.ssh
+}
+
 function git_generate_key_gpg() {
    echo "Generating GPG key..."
    gpg --full-generate-key
@@ -135,6 +148,19 @@ function git_generate_key_gpg() {
    git push
 
    echo "Check the commit on GitHub. You should see a 'Verified' badge next to the commit message."
+}
+
+function git_commit()
+{
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 1 ]] && {
+      help_note "Wrapper for git commit and git push"
+      help_headline "${FUNCNAME}" "\"commit message\""
+      help_param "commit message" "Commit message enclosed by quotes"
+      return 0;
+   }
+
+   git commit -a -m "${1}"
+   git push
 }
 
 #alias | grep git_

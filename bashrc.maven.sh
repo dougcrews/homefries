@@ -24,6 +24,16 @@ function maven_list_goals() {
 }
 export -f maven_list_goals
 
+# TeaVM/Flavour new project (not working at this typing)
+#mvn archetype:generate \
+#  -DgroupId=com.dougcrews.learn.teavm.flavour \
+#  -DartifactId=learn-teavm-flavour \
+#  -DinteractiveMode=false \
+#  -DarchetypeGroupId=com.frequal.flavour \
+#  -DarchetypeArtifactId=teavm-flavour-application \
+#  -DarchetypeVersion=0.3.2
+#cd flavour && mvn clean install && firefox target/flavour-1.0-SNAPSHOT/index.html
+
 #which mvn
 mvn --version
 
