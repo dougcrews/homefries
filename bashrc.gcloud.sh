@@ -202,8 +202,27 @@ script_echo "Google Cloud setup..."
 #log_info "KMS Encryption Key ID: ${GCP_KMS_ENCRYPTION_KEY_ID}"
 #log_info "KMS Password Pepper ID: ${GCP_KMS_PASSWORD_PEPPER_ID}"
 
+alias gc_auth_list='gcloud auth list --format="value(account)"'
+alias gc_auth_login='gcloud auth login'
+alias gc_auth_serviceaccount_activate='gcloud auth activate-service-account --key-file=key.json --password-file=password.json'
+alias gc_configs_list='gcloud config configurations list'
+alias gc_config_create='gcloud config configurations create ${CONFIG_NAME}'
+alias gc_config_describe='gcloud config configurations describe ${CONFIG_NAME:-default}'
+alias gc_config_list='gcloud config list'
+alias gc_project_set='gcloud config set project ${PROJECT_ID:-"ERROR: must specify project ID"}'
+alias gc_project_get='gcloud config get project'
+alias gc_region_set='gcloud config set compute/region ${REGION}'
+alias gc_zone_set='gcloud config set compute/zone ${ZONE}'
+alias gcp_project_set='gcloud config set project ${GCP_PROJECT:-$(basename ${PWD})}'
+alias gcp_project_get='gcloud config get project'
 
-alias gc=gcloud
+alias gc_disable_prompts='export CLOUDSDK_CORE_DISABLE_PROMPTS=1'
+alias gc_enable_prompts='export CLOUDSDK_CORE_DISABLE_PROMPTS='
+
+
+# --access-token-file, --account, --billing-project, --configuration, --flags-file, --flatten, --format, --help, --impersonate-service-account, --log-http, --project, --quiet, --trace-token, --user-output-enabled, --verbosity
+alias gc='gcloud'
 alias gc_project="gcloud config list --format='text(core.project)'"
 
 gcloud --version
+gc_configs_list

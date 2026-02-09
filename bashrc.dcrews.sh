@@ -366,7 +366,7 @@ alias la='ls --almost-all'
 alias lal='ls --almost-all -l'
 alias ll='ls -l'
 alias ls='ls --classify --color=tty --human-readable'
-which less >/dev/null 2>&1 && export PAGER=less
+#which less >/dev/null 2>&1 && export PAGER=less
 alias links='ls -la $(find . -maxdepth 1 -type l -print)'
 alias m=more
 alias make_list='make -p 2>/dev/null | grep -A 100000 "# Files" | grep -v "^$" | grep -v "^\(\s\|#\|\.\)" | grep -v "Makefile:" | cut -d ":" -f 1 | sort -u'
@@ -389,6 +389,7 @@ if [[ -d ~/.bin ]]; then for f in $( \ls ~/bin/*.sh ); do alias $(basename $f .s
 [[ -x ~/.bashrc.aws ]] && . ~/.bashrc.aws
 [[ -x ~/.bashrc.devcontainer ]] && . ~/.bashrc.devcontainer
 [[ -x ~/.bashrc.docker ]] && . ~/.bashrc.docker
+[[ -x ~/.bashrc.gcloud ]] && . ~/.bashrc.gcloud
 [[ -x ~/.bashrc.git ]] && . ~/.bashrc.git
 [[ -x ~/.bashrc.golang ]] && . ~/.bashrc.golang
 [[ -x ~/.bashrc.kubernetes ]] && . ~/.bashrc.kubernetes
