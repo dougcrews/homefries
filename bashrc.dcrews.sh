@@ -124,6 +124,23 @@ function wait_for() {
    done
 }
 
+# Repeat command until URL returns HTTP 200, then open browser
+function wait_for_url() {
+   echo -n "Waiting for ${1}"
+   timeout --preserve-status --foreground -s TERM 30s bash -c \
+      'while [[ "$(curl -s -o /dev/null -m 3 -L -w ''%{http_code}'' ${0})" != "200" ]];\
+      do echo -n "." && sleep 1;\
+      done' ${1}
+   result=$?
+   if [[ $result != 0 ]]; then 
+      echo " timed out."
+   else
+       echo " got it."
+       ${ECHODO} '"${BROWSER}"' ${1}
+   fi
+   return $result
+}
+
 # Echo message only if the VERBOSE system variable is set
 function vecho() {
    [ -n "${VERBOSE}" ] && echo ${@}

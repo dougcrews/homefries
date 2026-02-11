@@ -202,27 +202,34 @@ script_echo "Google Cloud setup..."
 #log_info "KMS Encryption Key ID: ${GCP_KMS_ENCRYPTION_KEY_ID}"
 #log_info "KMS Password Pepper ID: ${GCP_KMS_PASSWORD_PEPPER_ID}"
 
-alias gc_auth_list='gcloud auth list --format="value(account)"'
-alias gc_auth_login='gcloud auth login'
-alias gc_auth_serviceaccount_activate='gcloud auth activate-service-account --key-file=key.json --password-file=password.json'
-alias gc_configs_list='gcloud config configurations list'
-alias gc_config_create='gcloud config configurations create ${CONFIG_NAME}'
-alias gc_config_describe='gcloud config configurations describe ${CONFIG_NAME:-default}'
-alias gc_config_list='gcloud config list'
-alias gc_project_set='gcloud config set project ${PROJECT_ID:-"ERROR: must specify project ID"}'
-alias gc_project_get='gcloud config get project'
-alias gc_region_set='gcloud config set compute/region ${REGION}'
-alias gc_zone_set='gcloud config set compute/zone ${ZONE}'
-alias gcp_project_set='gcloud config set project ${GCP_PROJECT:-$(basename ${PWD})}'
-alias gcp_project_get='gcloud config get project'
-
+alias gc_auth_list='gc auth list --format="value(account)"'
+alias gc_auth_login='gc auth login'
+alias gc_auth_serviceaccount_activate='gc auth activate-service-account --key-file=key.json --password-file=password.json'
+alias gc_configs_list='gc config configurations list'
+alias gc_config_create='gc config configurations create ${CONFIG_NAME}'
+alias gc_config_describe='gc config configurations describe ${CONFIG_NAME:-default}'
+alias gc_config_list='gc config list'
+alias gc_project_set='gc config set project ${PROJECT_ID:-"ERROR: must specify project ID"}'
+alias gc_project_get='gc config get project'
+alias gc_region_set='gc config set compute/region ${REGION}'
+alias gc_zone_set='gc config set compute/zone ${ZONE}'
+alias gc_projects_list='gc projects list'
+alias gc_project_set='gc config set project ${GCP_PROJECT:-$(basename ${PWD})}'
+alias gc_project_get='gc config get project'
+alias gc_orgs_list='gc organizations list'
+alias gc_project_org_get='gc projects get-ancestors $(gcloud config get-value project)'
 alias gc_disable_prompts='export CLOUDSDK_CORE_DISABLE_PROMPTS=1'
 alias gc_enable_prompts='export CLOUDSDK_CORE_DISABLE_PROMPTS='
+alias gc_config_prompts_disable='gc config set disable_prompts true'
+alias gc_config_path_describe='gcloud info --format="get(config.paths.active_config_path)"'
 
+CLOUDSDK_ACTIVE_CONFIG_NAME=default
 
 # --access-token-file, --account, --billing-project, --configuration, --flags-file, --flatten, --format, --help, --impersonate-service-account, --log-http, --project, --quiet, --trace-token, --user-output-enabled, --verbosity
-alias gc='gcloud'
-alias gc_project="gcloud config list --format='text(core.project)'"
+alias gc='${ECHODO} gcloud'
+alias gc_project="gc config list --format='text(core.project)'"
 
 gcloud --version
 gc_configs_list
+gc_projects_list
+

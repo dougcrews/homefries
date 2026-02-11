@@ -61,18 +61,31 @@ function d_bash() {
    ${ECHODO} docker exec -it ${docker_image} bash ${docker_params}
 }
 
+function d_stop() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_note "Wrapper for " "*docker stop"
+      help_headline "${FUNCNAME}" "[container_id]" "[...]"
+      help_param "[container_id]" "Docker image" "busybox:latest"
+      help_param "[...]" "Additional parameters for 'docker stop'"
+      return 0;
+   }
+   local docker_image="busybox:latest"
+   if [[ -s ./Dockerfile ]]; then
+      # default current directory name
+      docker_image=$(basename ${PWD});
+   fi
+   local docker_params=${@}
+   if [[ "${#}" > 0 ]]; then
+      container_id=${1}
+      docker_params=${docker_params[@]/${1}} # remove this param
+   fi
+   # @TODO scan Dockerfile for ENV and convert to "-e KEY=Value" params
+   local image_name=$(echo ${docker_image} | sed -e 's/:/-/g')
+   ${ECHODO} docker stop ${container_id} ${docker_params}
+}
+
 function d_ip() {
    ${ECHODO} docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${1:-"Container ID is needed"}
-}
-
-function d_mysql8() {
-   ${ECHODO} docker_clean_orphans 2>/dev/null;
-   ${ECHODO} docker run --detach --publish 127.0.0.1:3306:3306 --volume /var/log/docker/mysql8:/var/log/mysql --volume /var/lib/docker/mysql8:/var/lib/mysql --env MYSQL_ROOT_PASSWORD=password --env MYSQL_GENERAL_LOG=1 --name mysql8 cytopia/mysql-8.0 && dps --filter "name=mysql8"
-}
-
-function d_postgres() {
-   ${ECHODO} docker pull postgres
-   ${ECHODO} docker run --detach --publish 127.0.0.1:5432:5432 --volume /var/log/docker/postgres:/var/log/postgres --volume /var/lib/docker/postgres:/var/lib/postgres --env POSTGRES_PASSWORD=password --name postgres postgres && dps --filter "name=postgres"
 }
 
 function d_images() {
@@ -123,8 +136,9 @@ function d_build() {
 function d_ps {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
       help_note "Wrapper for " "*docker ps"
-      help_headline "${FUNCNAME}" "[--all]" "[--short|--long|--full] [...]"
+      help_headline "${FUNCNAME}" "[--all]" "[--tiny|--short|--long|--full] [...]"
       help_param "[--all]" "Show all containers" "only show running containers" # passed directly to docker as a param
+      help_param "[--tiny]" "Use table format with most useful fields"
       help_param "[--short]" "Use table format with useful fields"
       help_param "[--long]" "Use list format with newlines and all fields"
       help_param "[--full]" "Use table format with all fields"
@@ -133,7 +147,10 @@ function d_ps {
    }
    local docker_params=${@}
    local docker_format
-   if [[ "${*}" =~ --short ]]; then
+   if [[ "${*}" =~ --tiny ]]; then
+      docker_format="--format 'table {{.Names}}\t{{.ID}}\t{{.Image}}\t{{.State}}\t{{or .Ports \"(none)\"}}\t{{or .Networks \"(none)\"}}'"
+      docker_params=${docker_params[@]/--tiny} # remove this param
+   elif [[ "${*}" =~ --short ]]; then
       docker_format="--format 'table {{.Names}}\t{{.ID}}\t{{.Image}}\t{{.Size}}\t{{.Command}}\t{{.State}}\t{{or .Ports \"(none)\"}}\t{{or .Networks \"(none)\"}}'"
       docker_params=${docker_params[@]/--short} # remove this param
    elif [[ "${*}" =~ --long ]]; then
@@ -145,6 +162,7 @@ function d_ps {
    fi
    ${ECHODO} docker ps ${docker_format} ${docker_params}
 }
+alias dps='d_ps --tiny'
 
 function d_inspect {
    [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
@@ -215,6 +233,30 @@ function d_pull() {
 #  # Latest version: https://github.com/docker/compose/releases/latest
 #  sudo curl -L https://github.com/docker/compose/releases/download/1.26.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose
 #fi
+
+function d_mysql8() {
+   ${ECHODO} docker_clean_orphans 2>/dev/null;
+   ${ECHODO} docker run --detach --publish 127.0.0.1:3306:3306 --volume /var/log/docker/mysql8:/var/log/mysql --volume /var/lib/docker/mysql8:/var/lib/mysql --env MYSQL_ROOT_PASSWORD=password --env MYSQL_GENERAL_LOG=1 --name mysql8 cytopia/mysql-8.0 && dps --filter "name=mysql8"
+}
+
+function d_postgres() {
+   ${ECHODO} docker pull postgres
+   ${ECHODO} docker run --detach --publish 127.0.0.1:5432:5432 --volume /var/log/docker/postgres:/var/log/postgres --volume /var/lib/docker/postgres:/var/lib/postgres --env POSTGRES_PASSWORD=password --name postgres postgres && dps --filter "name=postgres"
+}
+
+function d_keycloak() {
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_note "Wrapper for " "*Keycloak OAuth2 server" " in dev mode"
+      help_headline "${FUNCNAME}" "[admin_username]" "[admin_password]"
+      help_param "[admin_username]" "Admin username" "admin"
+      help_param "[admin_password]" "Admin password" "password"
+      return 0;
+   }
+   ${ECHODO} docker run --rm=true --detach --name keycloak --publish 127.0.0.1:8080:8080 \
+   	-e KC_BOOTSTRAP_ADMIN_USERNAME=${1:-admin} -e KC_BOOTSTRAP_ADMIN_PASSWORD=${2:-password} \
+   	quay.io/keycloak/keycloak:26.5.3 start-dev
+   wait_for_url localhost:8080/admin
+}
 
 #docker_required || echo "Starting Docker..."
 
