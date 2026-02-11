@@ -252,10 +252,11 @@ function d_keycloak() {
       help_param "[admin_password]" "Admin password" "password"
       return 0;
    }
-   ${ECHODO} docker run --rm=true --detach --name keycloak --publish 127.0.0.1:8080:8080 \
+   ${ECHODO} docker run --rm=true --detach --volume keycloak:/opt/keycloak/data/ --name keycloak --publish 127.0.0.1:8080:8080 \
    	-e KC_BOOTSTRAP_ADMIN_USERNAME=${1:-admin} -e KC_BOOTSTRAP_ADMIN_PASSWORD=${2:-password} \
    	quay.io/keycloak/keycloak:26.5.3 start-dev
-   wait_for_url localhost:8080/admin
+   wait_for_url localhost:8080/admin # admin console
+#   wait_for_url localhost:8080/realms/${MYREALM}/account # user console
 }
 
 #docker_required || echo "Starting Docker..."
