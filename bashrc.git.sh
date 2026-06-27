@@ -46,6 +46,41 @@ function git_revert() {
 }
 export -f git_revert
 
+function git_diff() {
+   # help
+   [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
+      help_headline '${FUNCNAME}' '[--quiet]' '[--long]' '[--fetch]'
+      help_param '[--quiet]' 'No output; returns exit code from diff; 0=no changes, 1=changed'
+      help_param '[--long]' 'Standard output with context lines'
+      help_param '[--fetch]' 'Prefetch from server'
+      return 0;
+   }
+
+   if [[ "${*}" =~ --fetch ]]; then
+      if [[ "${*}" =~ --quiet ]]; then
+         git fetch --progress -v -- "origin" >/dev/null 2>&1
+      else
+         ${ECHODO} git fetch --progress -v -- "origin"
+      fi
+   else
+      if [[ "${*}" =~ --quiet ]]; then
+         echo "" >/dev/null
+      else
+         echo "Skipping fetch..." >&2;
+      fi
+   fi
+   
+   if [[ "${*}" =~ --quiet ]]; then
+      ${ECHODO} git diff --check --exit-code --quiet >/dev/null 2>&1
+   elif [[ "${*}" =~ --long ]]; then
+      ${ECHODO} git diff --color=auto
+   else
+      ${ECHODO} git diff --compact-summary --color=auto
+   fi
+}
+export -f git_diff
+alias git_diff='\git_diff --fetch'
+
 function git_pull() {
    ${ECHODO} git fetch --progress -v -- "origin"
    #  --set-upstream docs say no param required/possible, but in practice it complains "you need to specify exactly one branch with the --set-upstream option"

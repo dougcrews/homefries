@@ -10,9 +10,9 @@ function aws_sso_login() {
 function aws_sso_account() {
    # help
    [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
-      echo -e "${funcName}${FUNCNAME} ${pOpt}[profile] ${pOpt}[--quiet]${colorReset}"
-      help_param "${pOpt}[profile]" "${helpMsg}AWS profile; default=${pDft}service${colorReset}"
-      help_param "${pOpt}[--quiet]" "${helpMsg}No output, return 0 if found or 1 if not found${colorReset}"
+      help_headline '${FUNCNAME} [profile] [--quiet]'
+      help_param '[profile]' 'AWS profile' 'service'
+      help_param '[--quiet]' 'No output, return 0 if found or 1 if not found'
       return 0;
    }
    export AWS_ACCOUNT=$(aws sts get-caller-identity --profile ${1:-service} --query "Account" | sed -e 's/"//g' 2>/dev/null);
@@ -30,9 +30,9 @@ export -f aws_sso_account
 function aws_sso_required() {
    # help
    [[ "${*}" =~ --help ]] || [[ "${#}" < 0 ]] && {
-      help_headline "${FUNCNAME}" " [profile] [--quiet]"
-      help_param "[profile]" "AWS profile; default=service"
-      help_param "[--verbose]" "Output current AWS account id"
+      help_headline '${FUNCNAME}' '[profile] [--quiet]'
+      help_param '[profile]' 'AWS profile; default=service'
+      help_param '[--verbose]' 'Output current AWS account id'
       return 0;
    }
    (aws_sso_account ${1:-ecr-user} --quiet || aws_sso_login)
@@ -53,9 +53,9 @@ export -f aws_profile_account
 function aws_assume_role() {
    # help
    [[ "${*}" =~ --help ]] || [[ "${#}" < 1 ]] && {
-      help_headline "${FUNCNAME}" " role_arn [profile]"
-      help_param "role_arn" "AWS role to assume"
-      help_param "[profile] AWS profile to assume (default \"service\")"
+      help_headline '${FUNCNAME}' 'role_arn [profile]'
+      help_param 'role_arn' 'AWS role to assume'
+      help_param '[profile] AWS profile to assume (default "service")'
       return 0;
    }
    local role_arn="$1";
